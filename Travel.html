@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>旅行行李 App｜15天＋日本5天</title>
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#121a27; --muted:#93a4bf; --text:#e8eefc;
+      --line:#22314a; --ok:#4ade80; --warn:#fbbf24; --danger:#fb7185;
+      --chip:#0a1220; --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif,system-ui,-apple-system,"Noto Sans TC",Segoe UI,Arial;
+      background: linear-gradient(180deg,#070a10,#0b0f17 40%); color:var(--text);
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    a{color:inherit}
+    .app{max-width:980px; margin:0 auto; padding:14px 14px 88px;}
+    header{position:sticky; top:0; z-index:5; backdrop-filter: blur(10px);
+      background: rgba(11,15,23,.72); border-bottom:1px solid rgba(34,49,74,.65);
+      padding: 14px 14px 10px; }
+    .hrow{display:flex; gap:10px; align-items:flex-start; justify-content:space-between;}
+    .title{font-size:16px; font-weight:700; letter-spacing:.2px; margin:0}
+    .subtitle{margin:4px 0 0; font-size:12px; color:var(--muted); line-height:1.35}
+    .pill{font-size:11px; color:var(--muted); border:1px solid var(--line); padding:4px 10px; border-radius:999px; background:rgba(10,18,32,.7)}
+    .card{background:rgba(18,26,39,.92); border:1px solid rgba(34,49,74,.85);
+      border-radius:var(--r); padding:14px; box-shadow: var(--shadow);}
+    .stack{display:flex; flex-direction:column; gap:12px; margin-top:12px;}
+    .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .inp{width:100%; padding:11px 12px; border:1px solid var(--line); background:var(--chip);
+      color:var(--text); border-radius:14px; outline:none; font-size:14px;}
+    .btn{padding:11px 12px; border:1px solid var(--line); background:var(--chip);
+      color:var(--text); border-radius:14px; cursor:pointer; font-size:13px;}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{border-color:#2e4468; background: linear-gradient(180deg,#0a1220,#0b1322);}
+    .btn.danger{border-color:#5a2a2a}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid var(--line);
+      border-radius:999px; background:rgba(10,18,32,.7); font-size:12px; color:var(--muted); cursor:pointer; user-select:none;}
+    .chip.on{color:var(--text); border-color:#2e4468}
+    .chip input{transform: scale(1.05)}
+    .progress{height:10px; background:rgba(10,18,32,.7); border:1px solid var(--line);
+      border-radius:999px; overflow:hidden}
+    .bar{height:100%; width:0%; background: linear-gradient(90deg,#22c55e,#60a5fa);}
+    .split{display:flex; justify-content:space-between; gap:10px; align-items:center; color:var(--muted); font-size:12px}
+    .tabs{
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(11,15,23,.84); backdrop-filter: blur(10px);
+      border-top:1px solid rgba(34,49,74,.65);
+    }
+    .tabs .wrap{max-width:980px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+    .tab{padding:10px 8px; border-radius:16px; border:1px solid rgba(34,49,74,.65);
+      background: rgba(10,18,32,.65); text-align:center; font-size:12px; color:var(--muted); cursor:pointer;}
+    .tab.on{color:var(--text); border-color:#2e4468; background:rgba(10,18,32,.95)}
+    .list{display:flex; flex-direction:column; gap:10px;}
+    .item{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:12px; border:1px solid rgba(34,49,74,.85);
+      border-radius:16px; background: rgba(10,18,32,.7);
+    }
+    .item.done{opacity:.62}
+    .ck{margin-top:2px; transform:scale(1.15)}
+    .it-main{flex:1; min-width:0}
+    .it-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+    .it-name{font-size:14px; font-weight:650; line-height:1.25}
+    .badges{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+    .badge{font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid rgba(34,49,74,.85); color:#c7d2fe}
+    .badge.must{color:#bbf7d0; border-color:#24513a}
+    .badge.jp{color:#fecaca; border-color:#5a2a2a}
+    .badge.loc{color:#fde68a; border-color:#5a4b1a}
+    .it-note{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35}
+    .it-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+    .mini{padding:8px 10px; border-radius:12px; font-size:12px}
+    .qty{display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:12px}
+    .qty input{width:54px; padding:6px 8px; border-radius:10px; border:1px solid var(--line); background:var(--chip); color:var(--text)}
+    details{border:1px solid rgba(34,49,74,.85); border-radius:var(--r); background: rgba(18,26,39,.7); overflow:hidden;}
+    summary{list-style:none; cursor:pointer; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;}
+    summary::-webkit-details-marker{display:none}
+    .sum-title{font-size:14px; font-weight:700}
+    .sum-meta{font-size:12px; color:var(--muted)}
+    .inside{padding: 0 14px 14px;}
+    .grid2{display:grid; grid-template-columns:1fr; gap:10px;}
+    @media(min-width:900px){ .grid2{grid-template-columns: 1fr 1fr;} }
+    .toast{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom: 92px; z-index:20;
+      max-width: calc(100vw - 24px);
+      background: rgba(10,18,32,.92); border:1px solid rgba(34,49,74,.85);
+      color: var(--text); padding: 10px 12px; border-radius: 14px; box-shadow: var(--shadow);
+      font-size: 13px; display:none;
+    }
+    .toast.on{display:block}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div>
+      <h1 class="title">旅行行李 App｜15天＋日本5天</h1>
+      <div class="subtitle">手機優先：分段（出發前／在日本／回國前）、位置（隨身/托運/文件袋）、必帶提醒、離線可用（可加到主畫面）。</div>
+    </div>
+    <div class="pill" id="phasePill">段：出發前</div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="stack" id="view"></div>
+</div>
+
+<div class="tabs">
+  <div class="wrap">
+    <div class="tab on" data-tab="list">清單</div>
+    <div class="tab" data-tab="phase">分段</div>
+    <div class="tab" data-tab="todo">未完成</div>
+    <div class="tab" data-tab="settings">設定</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---------- PWA (manifest + service worker) in single file ----------
+  (function setupPWA(){
+    const manifest = {
+      name: "旅行行李 App",
+      short_name: "行李App",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0b0f17",
+      theme_color: "#0b0f17",
+      icons: [
+        { src: "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='256' height='256' rx='48' fill='#0b0f17'/><path d='M74 92c0-12 10-22 22-22h64c12 0 22 10 22 22v94c0 12-10 22-22 22H96c-12 0-22-10-22-22V92zm26-8h56' stroke='#e8eefc' stroke-width='14' stroke-linecap='round' fill='none'/><path d='M92 120h72M92 148h72M92 176h48' stroke='#60a5fa' stroke-width='12' stroke-linecap='round'/></svg>`), sizes:"256x256", type:"image/svg+xml" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = url;
+    document.head.appendChild(link);
+
+    if ("serviceWorker" in navigator){
+      const swCode = `
+        const CACHE='packapp-v1';
+        self.addEventListener('install', e=>{
+          e.waitUntil((async()=>{
+            const cache = await caches.open(CACHE);
+            cache.addAll([self.registration.scope]); // cache the start url
+            self.skipWaiting();
+          })());
+        });
+        self.addEventListener('activate', e=>{
+          e.waitUntil((async()=>{ await self.clients.claim(); })());
+        });
+        self.addEventListener('fetch', e=>{
+          e.respondWith((async()=>{
+            const cached = await caches.match(e.request);
+            if (cached) return cached;
+            try{
+              const res = await fetch(e.request);
+              const cache = await caches.open(CACHE);
+              cache.put(e.request, res.clone());
+              return res;
+            }catch(err){
+              return cached || new Response('Offline', {status:200});
+            }
+          })());
+        });
+      `;
+      const swBlob = new Blob([swCode], {type:"text/javascript"});
+      const swUrl = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swUrl).catch(()=>{});
+    }
+  })();
+
+  // ---------- App State ----------
+  const STORAGE_KEY = "travel_pack_app_v2_15d_jp5";
+  const $ = (q)=>document.querySelector(q);
+  const $$ = (q)=>Array.from(document.querySelectorAll(q));
+  const toastEl = $("#toast");
+
+  const PHASES = [
+    { id:"pre", name:"出發前" },
+    { id:"jp",  name:"在日本" },
+    { id:"post",name:"回國前" }
+  ];
+  const LOCS = [
+    { id:"carry", name:"隨身包" },
+    { id:"check", name:"托運" },
+    { id:"docs",  name:"文件袋" }
+  ];
+
+  const seedItems = [
+    // must=true => 最後 10 分鐘檢查會優先
+    {id:"p1", cat:"證件與金流", name:"護照（效期確認）", note:"拍照備份+離線保存", phase:["pre","jp"], jp:true, must:true, loc:"docs", qty:1},
+    {id:"p2", cat:"證件與金流", name:"機票/行程/住宿訂單", note:"離線截圖", phase:["pre","jp"], jp:true, must:true, loc:"docs", qty:1},
+    {id:"p3", cat:"證件與金流", name:"信用卡（至少2張）", note:"確認海外刷卡/3D驗證", phase:["pre","jp","post"], jp:true, must:true, loc:"carry", qty:2},
+    {id:"p4", cat:"證件與金流", name:"現金（日幣少量＋台幣）", note:"日本小店常用", phase:["pre","jp"], jp:true, must:true, loc:"carry", qty:1},
+    {id:"p5", cat:"證件與金流", name:"海外提款卡/金融卡", note:"確認海外提款", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+    {id:"p6", cat:"證件與金流", name:"旅遊保險/緊急聯絡", note:"紙本或離線", phase:["pre","jp"], jp:true, must:false, loc:"docs", qty:1},
+    {id:"p7", cat:"證件與金流", name:"身分證/健保卡", note:"台灣段需要", phase:["pre","post"], jp:false, must:false, loc:"docs", qty:1},
+    {id:"p8", cat:"證件與金流", name:"國際駕照（若自駕）", note:"自駕才需要", phase:["pre","jp"], jp:true, must:false, loc:"docs", qty:1},
+
+    {id:"c1", cat:"3C與電力", name:"手機", note:"確認漫遊/雙SIM/eSIM", phase:["pre","jp","post"], jp:false, must:true, loc:"carry", qty:1},
+    {id:"c2", cat:"3C與電力", name:"充電線", note:"Type-C/Lightning", phase:["pre","jp","post"], jp:false, must:true, loc:"carry", qty:1},
+    {id:"c3", cat:"3C與電力", name:"充電頭（多孔）", note:"2~3孔佳", phase:["pre","jp","post"], jp:false, must:true, loc:"carry", qty:1},
+    {id:"c4", cat:"3C與電力", name:"行動電源", note:"注意航空規範", phase:["pre","jp"], jp:true, must:true, loc:"carry", qty:1},
+    {id:"c5", cat:"3C與電力", name:"耳機", note:"飛機/通勤", phase:["pre","jp","post"], jp:false, must:false, loc:"carry", qty:1},
+    {id:"c6", cat:"3C與電力", name:"轉接頭（備用）", note:"多設備可帶", phase:["pre","jp"], jp:true, must:false, loc:"check", qty:1},
+
+    {id:"w1", cat:"衣物", name:"上衣", note:"建議可洗", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:8},
+    {id:"w2", cat:"衣物", name:"下著", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:4},
+    {id:"w3", cat:"衣物", name:"內衣褲", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:10},
+    {id:"w4", cat:"衣物", name:"襪子", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:10},
+    {id:"w5", cat:"衣物", name:"外套/薄風衣", note:"日本溫差", phase:["pre","jp"], jp:true, must:false, loc:"check", qty:1},
+    {id:"w6", cat:"衣物", name:"睡衣", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:1},
+    {id:"w7", cat:"衣物", name:"好走的鞋", note:"", phase:["pre","jp","post"], jp:false, must:true, loc:"carry", qty:1},
+    {id:"w8", cat:"衣物", name:"摺疊傘/雨衣", note:"", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+
+    {id:"t1", cat:"盥洗與個人用品", name:"牙刷/牙膏/牙線", note:"旅行組", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:1},
+    {id:"t2", cat:"盥洗與個人用品", name:"洗面乳/保養品", note:"分裝瓶", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:1},
+    {id:"t3", cat:"盥洗與個人用品", name:"濕紙巾/小毛巾", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"carry", qty:1},
+
+    {id:"m1", cat:"藥品與健康", name:"常備藥（感冒/止痛/腸胃/過敏）", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"carry", qty:1},
+    {id:"m2", cat:"藥品與健康", name:"處方藥（足量＋原包裝）", note:"日本段務必", phase:["pre","jp"], jp:true, must:true, loc:"carry", qty:1},
+    {id:"m3", cat:"藥品與健康", name:"OK繃/貼布", note:"", phase:["pre","jp","post"], jp:false, must:false, loc:"carry", qty:1},
+
+    {id:"j1", cat:"日本情境加成", name:"日本上網（eSIM/SIM/分享器）", note:"已開通/備援", phase:["pre","jp"], jp:true, must:true, loc:"carry", qty:1},
+    {id:"j2", cat:"日本情境加成", name:"交通卡（Suica/PASMO/ICOCA）", note:"手機交通卡也行", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+    {id:"j3", cat:"日本情境加成", name:"離線地圖/離線行程", note:"Google Maps 離線區域", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+    {id:"j4", cat:"日本情境加成", name:"小零錢包", note:"", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+
+    {id:"o1", cat:"其他實用", name:"收納袋/壓縮袋", note:"衣物分區", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:1},
+    {id:"o2", cat:"其他實用", name:"夾鏈袋/防水袋", note:"濕物/票據", phase:["pre","jp","post"], jp:false, must:false, loc:"check", qty:1},
+    {id:"o3", cat:"其他實用", name:"行李秤（回程購物）", note:"可選", phase:["jp","post"], jp:true, must:false, loc:"check", qty:1},
+    {id:"o4", cat:"其他實用", name:"筆", note:"填表備用", phase:["pre","jp"], jp:true, must:false, loc:"carry", qty:1},
+  ];
+
+  function uid(){ return "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function load(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {
+      tab:"list",
+      phase:"pre",
+      showJapan:true,
+      onlyTodo:false,
+      q:"",
+      locFilter:"all",
+      collapsed:{},
+      items: seedItems.map(x=>({...x, done:false}))
+    };
+    try { return JSON.parse(raw); }
+    catch { return {
+      tab:"list", phase:"pre", showJapan:true, onlyTodo:false, q:"", locFilter:"all", collapsed:{},
+      items: seedItems.map(x=>({...x, done:false}))
+    }; }
+  }
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(()=>toastEl.classList.remove("on"), 2200);
+  }
+
+  let state = load();
+
+  function phaseName(){ return PHASES.find(p=>p.id===state.phase)?.name || "出發前"; }
+  function updatePhasePill(){ $("#phasePill").textContent = "段：" + phaseName(); }
+
+  function visibleItems(){
+    const q = (state.q||"").trim().toLowerCase();
+    return state.items.filter(it=>{
+      if (!state.showJapan && it.jp) return false;
+      if (!it.phase.includes(state.phase)) return false;
+      if (state.onlyTodo && it.done) return false;
+      if (state.locFilter !== "all" && it.loc !== state.locFilter) return false;
+      if (q){
+        const blob = (it.name+" "+(it.note||"")+" "+it.cat).toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function statsForCurrentScope(){
+    const scope = state.items.filter(it=>{
+      if (!state.showJapan && it.jp) return false;
+      return it.phase.includes(state.phase);
+    });
+    const done = scope.filter(x=>x.done).length;
+    const total = scope.length;
+    return {done,total, pct: total? Math.round(done/total*100): 0};
+  }
+
+  function mustMissing(){
+    const scope = state.items.filter(it=>{
+      if (!state.showJapan && it.jp) return false;
+      return it.phase.includes(state.phase);
+    });
+    return scope.filter(it=>it.must && !it.done);
+  }
+
+  function groupByCat(items){
+    const m = {};
+    for (const it of items){
+      (m[it.cat] ??= []).push(it);
+    }
+    return m;
+  }
+
+  function renderHeaderCard(container){
+    const s = statsForCurrentScope();
+    const miss = mustMissing();
+
+    const card = document.createElement("div");
+    card.className="card";
+
+    card.innerHTML = `
+      <div class="split">
+        <div>本段進度：<b style="color:var(--text)">${s.done}/${s.total}</b>（${s.pct}%）</div>
+        <div class="pill">位置：${state.locFilter==="all"?"全部":LOCS.find(l=>l.id===state.locFilter)?.name}</div>
+      </div>
+      <div style="margin-top:10px" class="progress"><div class="bar" style="width:${s.pct}%"></div></div>
+      <div style="margin-top:12px" class="toolbar">
+        <input class="inp" id="qInput" placeholder="搜尋：護照 / 充電 / 藥 / Suica ..." value="${escapeHtml(state.q||"")}"/>
+        <button class="btn primary" id="last10">最後 10 分鐘檢查</button>
+        <button class="btn" id="markAll">本段全部完成</button>
+      </div>
+      <div style="margin-top:10px" class="chips">
+        <div class="chip ${state.onlyTodo?'on':''}" id="onlyTodo"><input type="checkbox" ${state.onlyTodo?"checked":""}/>只看未完成</div>
+        <div class="chip ${state.showJapan?'on':''}" id="showJapan"><input type="checkbox" ${state.showJapan?"checked":""}/>顯示日本項</div>
+        <div class="chip ${state.locFilter==='all'?'on':''}" data-loc="all">全部位置</div>
+        ${LOCS.map(l=>`<div class="chip ${state.locFilter===l.id?'on':''}" data-loc="${l.id}">${l.name}</div>`).join("")}
+      </div>
+      ${miss.length? `<div style="margin-top:10px;color:var(--warn);font-size:12px">⚠️ 必帶尚未完成：${miss.slice(0,3).map(x=>x.name).join("、")}${miss.length>3?`…（共${miss.length}項）`:""}</div>`:""}
+    `;
+
+    container.appendChild(card);
+
+    // handlers
+    $("#qInput").addEventListener("input", e=>{ state.q=e.target.value; save(); render(); });
+    $("#onlyTodo").onclick = ()=>{ state.onlyTodo=!state.onlyTodo; save(); render(); };
+    $("#showJapan").onclick = ()=>{ state.showJapan=!state.showJapan; save(); render(); };
+    $$(".chip[data-loc]").forEach(el=>{
+      el.onclick = ()=>{ state.locFilter = el.dataset.loc; save(); render(); };
+    });
+
+    $("#markAll").onclick = ()=>{
+      const scope = state.items.filter(it=>{
+        if (!state.showJapan && it.jp) return false;
+        return it.phase.includes(state.phase);
+      });
+      scope.forEach(it=>it.done=true);
+      save(); toast("本段已全部標記完成"); render();
+    };
+
+    $("#last10").onclick = ()=>{
+      // 強制切到「未完成」視圖，並且過濾：must + 隨身包
+      state.tab = "todo";
+      state.onlyTodo = true;
+      state.q = "";
+      state.locFilter = "carry";
+      save();
+      toast("已切換：最後10分鐘（隨身包未完成）");
+      render();
+    };
+  }
+
+  function renderAddCard(container){
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">➕ 新增自訂項目</div>
+      <div class="grid2">
+        <input class="inp" id="nName" placeholder="項目名稱（例：護照影本、相機電池）" />
+        <input class="inp" id="nNote" placeholder="備註（放哪/提醒/規格，選填）" />
+        <select class="inp" id="nCat">
+          ${["證件與金流","3C與電力","衣物","盥洗與個人用品","藥品與健康","日本情境加成","其他實用"].map(c=>`<option>${c}</option>`).join("")}
+        </select>
+        <select class="inp" id="nLoc">
+          ${LOCS.map(l=>`<option value="${l.id}">${l.name}</option>`).join("")}
+        </select>
+        <select class="inp" id="nPhase">
+          <option value="pre">出發前</option>
+          <option value="jp">在日本</option>
+          <option value="post">回國前</option>
+          <option value="all">全部段</option>
+        </select>
+        <div class="chips">
+          <div class="chip" id="nJapan"><input type="checkbox" />日本限定</div>
+          <div class="chip" id="nMust"><input type="checkbox" />必帶</div>
+          <div class="chip" id="nCarry"><input type="checkbox" />放隨身（快速）</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="qty">數量 <input id="nQty" type="number" min="1" value="1" /></div>
+        <button class="btn primary" id="nAdd">新增</button>
+      </div>
+      <div style="margin-top:8px;color:var(--muted);font-size:12px;">
+        建議：把「收納位置」標成 隨身包/托運/文件袋，出門前只看隨身包就能秒檢查。
+      </div>
+    `;
+    container.appendChild(card);
+
+    // toggle style
+    function toggleChip(id){
+      const el = $(id);
+      el.classList.toggle("on");
+      const cb = el.querySelector("input");
+      cb.checked = !cb.checked;
+    }
+    $("#nJapan").onclick=()=>toggleChip("#nJapan");
+    $("#nMust").onclick=()=>toggleChip("#nMust");
+    $("#nCarry").onclick=()=>{
+      toggleChip("#nCarry");
+      if ($("#nCarry input").checked) $("#nLoc").value="carry";
+    };
+
+    $("#nAdd").onclick=()=>{
+      const name = $("#nName").value.trim();
+      if (!name) return toast("請輸入項目名稱");
+      const note = $("#nNote").value.trim();
+      const cat = $("#nCat").value;
+      const loc = $("#nLoc").value;
+      const jp = $("#nJapan input").checked;
+      const must = $("#nMust input").checked;
+      const qty = Math.max(1, parseInt($("#nQty").value||"1",10));
+      const ph = $("#nPhase").value;
+      const phase = ph==="all" ? ["pre","jp","post"] : [ph];
+      state.items.unshift({id:uid(), cat, name, note, phase, jp, must, loc, qty, done:false});
+      save(); toast("已新增");
+      $("#nName").value=""; $("#nNote").value=""; $("#nQty").value="1";
+      render();
+    };
+  }
+
+  function renderListView(container, items){
+    const cats = groupByCat(items);
+    const order = ["證件與金流","3C與電力","衣物","盥洗與個人用品","藥品與健康","日本情境加成","其他實用"];
+    for (const cat of order){
+      if (!cats[cat] || cats[cat].length===0) continue;
+      const det = document.createElement("details");
+      det.open = !state.collapsed[cat];
+      det.innerHTML = `
+        <summary>
+          <div class="sum-title">${cat}</div>
+          <div class="sum-meta">${cats[cat].filter(x=>x.done).length}/${cats[cat].length} 完成</div>
+        </summary>
+        <div class="inside">
+          <div class="list" data-cat="${cat}"></div>
+        </div>
+      `;
+      det.querySelector("summary").onclick = (e)=>{
+        // let details toggle then record collapsed state after tick
+        setTimeout(()=>{
+          state.collapsed[cat] = !det.open;
+          save();
+        },0);
+      };
+
+      const list = det.querySelector(".list");
+      cats[cat].forEach(it=>list.appendChild(renderItem(it)));
+      container.appendChild(det);
+    }
+  }
+
+  function renderItem(it){
+    const el = document.createElement("div");
+    el.className = "item" + (it.done?" done":"");
+    const locName = LOCS.find(l=>l.id===it.loc)?.name || "—";
+    el.innerHTML = `
+      <input class="ck" type="checkbox" ${it.done?"checked":""} />
+      <div class="it-main">
+        <div class="it-top">
+          <div class="it-name">${escapeHtml(it.name)}</div>
+          <div class="badges">
+            ${it.must?`<span class="badge must">必帶</span>`:""}
+            ${it.jp?`<span class="badge jp">日本</span>`:""}
+            <span class="badge loc">${locName}</span>
+          </div>
+        </div>
+        ${it.note?`<div class="it-note">${escapeHtml(it.note)}</div>`:""}
+        <div class="it-actions">
+          <span class="qty">數量 <input class="qinp" type="number" min="1" value="${it.qty||1}" /></span>
+          <button class="btn mini" data-act="loc">位置</button>
+          <button class="btn mini" data-act="must">${it.must?"取消必帶":"設為必帶"}</button>
+          <button class="btn mini danger" data-act="del">刪除</button>
+        </div>
+      </div>
+    `;
+
+    const ck = el.querySelector(".ck");
+    ck.onchange = ()=>{
+      it.done = ck.checked;
+      save();
+      if (it.must && it.done) toast("必帶已完成 ✅");
+      render();
+    };
+
+    el.querySelector(".qinp").onchange = (e)=>{
+      it.qty = Math.max(1, parseInt(e.target.value||"1",10));
+      save();
+    };
+
+    el.querySelector('[data-act="must"]').onclick = ()=>{
+      it.must = !it.must;
+      save(); toast(it.must?"已設為必帶":"已取消必帶");
+      render();
+    };
+
+    el.querySelector('[data-act="del"]').onclick = ()=>{
+      state.items = state.items.filter(x=>x.id!==it.id);
+      save(); toast("已刪除");
+      render();
+    };
+
+    el.querySelector('[data-act="loc"]').onclick = ()=>{
+      const idx = LOCS.findIndex(l=>l.id===it.loc);
+      const next = LOCS[(idx+1)%LOCS.length].id;
+      it.loc = next;
+      save(); toast("位置 → " + (LOCS.find(l=>l.id===next)?.name));
+      render();
+    };
+
+    return el;
+  }
+
+  function renderPhaseView(container){
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">分段切換</div>
+      <div class="chips">
+        ${PHASES.map(p=>`<div class="chip ${state.phase===p.id?'on':''}" data-phase="${p.id}">${p.name}</div>`).join("")}
+      </div>
+      <div style="margin-top:10px;color:var(--muted);font-size:12px;line-height:1.45">
+        建議使用流程：<br/>
+        ① 出發前：把「文件袋＋隨身包必帶」全部完成<br/>
+        ② 在日本：只看隨身包（錢包、卡、上網、藥）<br/>
+        ③ 回國前：行李秤/戰利品整理/重量確認
+      </div>
+    `;
+    container.appendChild(card);
+    $$(".chip[data-phase]").forEach(el=>{
+      el.onclick=()=>{
+        state.phase = el.dataset.phase;
+        // 進入不同段，通常不需要維持搜尋/未完成/位置篩選太嚴格
+        state.q = "";
+        state.onlyTodo = false;
+        state.locFilter = "all";
+        save(); toast("切換段：" + phaseName());
+        render();
+      };
+    });
+  }
+
+  function renderTodoView(container){
+    // 未完成視圖：提供 2 個快捷
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">未完成（本段）</div>
+      <div class="toolbar">
+        <button class="btn primary" id="todoMust">只看必帶未完成</button>
+        <button class="btn" id="todoCarry">只看隨身包未完成</button>
+        <button class="btn" id="todoAll">全部未完成</button>
+      </div>
+      <div style="margin-top:10px;color:var(--muted);font-size:12px">提示：出門前最後檢查，最有效的是「必帶＋隨身包」。</div>
+    `;
+    container.appendChild(card);
+
+    $("#todoMust").onclick=()=>{ state.onlyTodo=true; state.locFilter="all"; state.q=""; save(); renderList(container, true, true); };
+    $("#todoCarry").onclick=()=>{ state.onlyTodo=true; state.locFilter="carry"; state.q=""; save(); render(); };
+    $("#todoAll").onclick=()=>{ state.onlyTodo=true; state.locFilter="all"; state.q=""; save(); render(); };
+
+    // default render list of current filters
+    renderList(container);
+  }
+
+  function renderList(container, forceOnlyTodo=false, mustOnly=false){
+    const prevOnly = state.onlyTodo;
+    if (forceOnlyTodo) state.onlyTodo = true;
+
+    let items = visibleItems().filter(it=>!it.done);
+    if (mustOnly) items = items.filter(it=>it.must);
+
+    if (items.length===0){
+      const empty = document.createElement("div");
+      empty.className="card";
+      empty.innerHTML = `<div style="color:var(--muted);font-size:13px">（目前沒有未完成項目）</div>`;
+      container.appendChild(empty);
+    }else{
+      renderListView(container, items);
+    }
+
+    if (forceOnlyTodo) state.onlyTodo = prevOnly;
+  }
+
+  function renderSettingsView(container){
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">設定 / 備份</div>
+      <div class="toolbar">
+        <button class="btn" id="export">匯出 JSON</button>
+        <button class="btn" id="import">匯入 JSON</button>
+        <button class="btn" id="print">列印本段未完成</button>
+        <button class="btn danger" id="reset">重置</button>
+      </div>
+      <div style="margin-top:10px;color:var(--muted);font-size:12px;line-height:1.45">
+        資料保存在你的瀏覽器（LocalStorage）。要換手機/電腦請用匯出/匯入。<br/>
+        手機想像 App 一樣用：瀏覽器選單 →「加入主畫面」。
+      </div>
+    `;
+    container.appendChild(card);
+
+    $("#export").onclick = async ()=>{
+      const data = JSON.stringify(state, null, 2);
+      try{ await navigator.clipboard.writeText(data); }catch{}
+      const blob = new Blob([data], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "travel-pack.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("已匯出（並嘗試複製剪貼簿）");
+    };
+
+    $("#import").onclick = ()=>{
+      const input = document.createElement("input");
+      input.type="file"; input.accept="application/json";
+      input.onchange = async ()=>{
+        const f = input.files[0]; if (!f) return;
+        const txt = await f.text();
+        try{
+          const obj = JSON.parse(txt);
+          if (!obj.items || !Array.isArray(obj.items)) throw new Error("格式不正確");
+          state = obj;
+          save();
+          toast("匯入完成");
+          render();
+        }catch(e){
+          toast("匯入失敗：" + e.message);
+        }
+      };
+      input.click();
+    };
+
+    $("#print").onclick = ()=>{
+      const todo = state.items.filter(it=>{
+        if (!state.showJapan && it.jp) return false;
+        return it.phase.includes(state.phase) && !it.done;
+      });
+      const lines = todo.map(it=>{
+        const locName = LOCS.find(l=>l.id===it.loc)?.name || "";
+        return `- [ ] ${it.cat}｜${it.name}${it.must?"（必帶）":""}${it.jp?"（日本）":""}｜${locName}${it.note?` — ${it.note}`:""}`;
+      }).join("\\n");
+      const w = window.open("", "_blank");
+      w.document.write(`<pre style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas; white-space:pre-wrap; line-height:1.5; padding:16px;">${phaseName()}｜未完成\\n\\n${lines || "（全部完成）"}</pre>`);
+      w.print();
+    };
+
+    $("#reset").onclick = ()=>{
+      if (!confirm("確定重置？所有勾選與自訂項目都會清掉。")) return;
+      state = {
+        tab:"list", phase:"pre", showJapan:true, onlyTodo:false, q:"", locFilter:"all", collapsed:{},
+        items: seedItems.map(x=>({...x, done:false}))
+      };
+      save();
+      toast("已重置");
+      render();
+    };
+  }
+
+  function render(){
+    updatePhasePill();
+    // tabs UI
+    $$(".tab").forEach(t=>{
+      t.classList.toggle("on", t.dataset.tab===state.tab);
+      t.onclick = ()=>{
+        state.tab = t.dataset.tab;
+        save();
+        render();
+      };
+    });
+
+    const v = $("#view");
+    v.innerHTML = "";
+
+    // header summary + filters always
+    renderHeaderCard(v);
+
+    if (state.tab==="list"){
+      // list view: add + full list
+      renderAddCard(v);
+      const items = visibleItems();
+      if (!items.length){
+        const empty = document.createElement("div");
+        empty.className="card";
+        empty.innerHTML = `<div style="color:var(--muted);font-size:13px">（沒有符合的項目）</div>`;
+        v.appendChild(empty);
+      }else{
+        renderListView(v, items);
+      }
+      // must missing hard alert (only when in pre phase)
+      if (state.phase==="pre"){
+        const miss = mustMissing();
+        if (miss.length>=3) {
+          // soft reminder
+          // no modal, just toast occasionally
+        }
+      }
+    }
+
+    if (state.tab==="phase"){
+      renderPhaseView(v);
+    }
+
+    if (state.tab==="todo"){
+      renderTodoView(v);
+    }
+
+    if (state.tab==="settings"){
+      renderSettingsView(v);
+    }
+  }
+
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"']/g, c=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // initial render
+  render();
+</script>
+</body>
+</html>
