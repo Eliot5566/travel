@@ -246,23 +246,68 @@
 
   function uid(){ return "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-  function load(){
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {
+  function defaultState(){
+    return {
       tab:"list",
       phase:"pre",
       showJapan:true,
       onlyTodo:false,
+      mustOnly:false,
       q:"",
       locFilter:"all",
+      sortBy:"default",
       collapsed:{},
+      lastDeleted:null,
       items: seedItems.map(x=>({...x, done:false}))
     };
-    try { return JSON.parse(raw); }
-    catch { return {
-      tab:"list", phase:"pre", showJapan:true, onlyTodo:false, q:"", locFilter:"all", collapsed:{},
-      items: seedItems.map(x=>({...x, done:false}))
-    }; }
+  }
+
+  function normalizeItem(item){
+    return {
+      id: String(item?.id || uid()),
+      cat: String(item?.cat || "其他實用"),
+      name: String(item?.name || "未命名項目"),
+      note: String(item?.note || ""),
+      phase: Array.isArray(item?.phase) && item.phase.length ? item.phase.filter(p=>["pre","jp","post"].includes(p)) : ["pre"],
+      jp: !!item?.jp,
+      must: !!item?.must,
+      loc: LOCS.some(l=>l.id===item?.loc) ? item.loc : "carry",
+      qty: Math.max(1, parseInt(item?.qty || "1", 10) || 1),
+      done: !!item?.done
+    };
+  }
+
+  function normalizeState(parsed){
+    const base = defaultState();
+    const items = Array.isArray(parsed?.items)
+      ? parsed.items.map(normalizeItem)
+      : base.items;
+    return {
+      ...base,
+      ...parsed,
+      tab: ["list","phase","todo","settings"].includes(parsed?.tab) ? parsed.tab : base.tab,
+      phase: ["pre","jp","post"].includes(parsed?.phase) ? parsed.phase : base.phase,
+      showJapan: parsed?.showJapan !== undefined ? !!parsed.showJapan : base.showJapan,
+      onlyTodo: parsed?.onlyTodo !== undefined ? !!parsed.onlyTodo : base.onlyTodo,
+      mustOnly: parsed?.mustOnly !== undefined ? !!parsed.mustOnly : base.mustOnly,
+      q: String(parsed?.q || ""),
+      locFilter: parsed?.locFilter === "all" || LOCS.some(l=>l.id===parsed?.locFilter) ? parsed.locFilter : base.locFilter,
+      sortBy: ["default","name","qty","must"].includes(parsed?.sortBy) ? parsed.sortBy : base.sortBy,
+      collapsed: parsed?.collapsed && typeof parsed.collapsed === "object" ? parsed.collapsed : {},
+      lastDeleted: parsed?.lastDeleted && typeof parsed.lastDeleted === "object" ? parsed.lastDeleted : null,
+      items
+    };
+  }
+
+  function load(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    try {
+      return normalizeState(JSON.parse(raw));
+    }
+    catch {
+      return defaultState();
+    }
   }
   function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   function toast(msg){
@@ -279,10 +324,11 @@
 
   function visibleItems(){
     const q = (state.q||"").trim().toLowerCase();
-    return state.items.filter(it=>{
+    let list = state.items.filter(it=>{
       if (!state.showJapan && it.jp) return false;
       if (!it.phase.includes(state.phase)) return false;
       if (state.onlyTodo && it.done) return false;
+      if (state.mustOnly && !it.must) return false;
       if (state.locFilter !== "all" && it.loc !== state.locFilter) return false;
       if (q){
         const blob = (it.name+" "+(it.note||"")+" "+it.cat).toLowerCase();
@@ -290,6 +336,17 @@
       }
       return true;
     });
+
+    if (state.sortBy === "name") {
+      list = list.slice().sort((a,b)=>a.name.localeCompare(b.name, "zh-Hant"));
+    }
+    if (state.sortBy === "qty") {
+      list = list.slice().sort((a,b)=>(b.qty||1)-(a.qty||1));
+    }
+    if (state.sortBy === "must") {
+      list = list.slice().sort((a,b)=>Number(b.must)-Number(a.must));
+    }
+    return list;
   }
 
   function statsForCurrentScope(){
@@ -335,12 +392,23 @@
         <input class="inp" id="qInput" placeholder="搜尋：護照 / 充電 / 藥 / Suica ..." value="${escapeHtml(state.q||"")}"/>
         <button class="btn primary" id="last10">最後 10 分鐘檢查</button>
         <button class="btn" id="markAll">本段全部完成</button>
+        <button class="btn" id="clearFilters">清除篩選</button>
       </div>
       <div style="margin-top:10px" class="chips">
         <div class="chip ${state.onlyTodo?'on':''}" id="onlyTodo"><input type="checkbox" ${state.onlyTodo?"checked":""}/>只看未完成</div>
+        <div class="chip ${state.mustOnly?'on':''}" id="mustOnly"><input type="checkbox" ${state.mustOnly?"checked":""}/>只看必帶</div>
         <div class="chip ${state.showJapan?'on':''}" id="showJapan"><input type="checkbox" ${state.showJapan?"checked":""}/>顯示日本項</div>
         <div class="chip ${state.locFilter==='all'?'on':''}" data-loc="all">全部位置</div>
         ${LOCS.map(l=>`<div class="chip ${state.locFilter===l.id?'on':''}" data-loc="${l.id}">${l.name}</div>`).join("")}
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted)">排序</span>
+        <select class="inp" id="sortBy" style="max-width:180px;padding:8px 10px;font-size:12px;border-radius:12px;">
+          <option value="default" ${state.sortBy==='default'?'selected':''}>預設</option>
+          <option value="name" ${state.sortBy==='name'?'selected':''}>名稱</option>
+          <option value="qty" ${state.sortBy==='qty'?'selected':''}>數量（多→少）</option>
+          <option value="must" ${state.sortBy==='must'?'selected':''}>必帶優先</option>
+        </select>
       </div>
       ${miss.length? `<div style="margin-top:10px;color:var(--warn);font-size:12px">⚠️ 必帶尚未完成：${miss.slice(0,3).map(x=>x.name).join("、")}${miss.length>3?`…（共${miss.length}項）`:""}</div>`:""}
     `;
@@ -350,10 +418,23 @@
     // handlers
     $("#qInput").addEventListener("input", e=>{ state.q=e.target.value; save(); render(); });
     $("#onlyTodo").onclick = ()=>{ state.onlyTodo=!state.onlyTodo; save(); render(); };
+    $("#mustOnly").onclick = ()=>{ state.mustOnly=!state.mustOnly; save(); render(); };
     $("#showJapan").onclick = ()=>{ state.showJapan=!state.showJapan; save(); render(); };
     $$(".chip[data-loc]").forEach(el=>{
       el.onclick = ()=>{ state.locFilter = el.dataset.loc; save(); render(); };
     });
+    $("#sortBy").onchange = (e)=>{ state.sortBy = e.target.value; save(); render(); };
+
+    $("#clearFilters").onclick = ()=>{
+      state.onlyTodo = false;
+      state.mustOnly = false;
+      state.q = "";
+      state.locFilter = "all";
+      state.sortBy = "default";
+      save();
+      toast("已清除篩選");
+      render();
+    };
 
     $("#markAll").onclick = ()=>{
       const scope = state.items.filter(it=>{
@@ -368,8 +449,10 @@
       // 強制切到「未完成」視圖，並且過濾：must + 隨身包
       state.tab = "todo";
       state.onlyTodo = true;
+      state.mustOnly = true;
       state.q = "";
       state.locFilter = "carry";
+      state.sortBy = "must";
       save();
       toast("已切換：最後10分鐘（隨身包未完成）");
       render();
@@ -492,6 +575,7 @@
         ${it.note?`<div class="it-note">${escapeHtml(it.note)}</div>`:""}
         <div class="it-actions">
           <span class="qty">數量 <input class="qinp" type="number" min="1" value="${it.qty||1}" /></span>
+          <button class="btn mini" data-act="edit">編輯</button>
           <button class="btn mini" data-act="loc">位置</button>
           <button class="btn mini" data-act="must">${it.must?"取消必帶":"設為必帶"}</button>
           <button class="btn mini danger" data-act="del">刪除</button>
@@ -518,9 +602,37 @@
       render();
     };
 
+    el.querySelector('[data-act="edit"]').onclick = ()=>{
+      const name = prompt("項目名稱", it.name);
+      if (name===null) return;
+      const nextName = name.trim();
+      if (!nextName) return toast("名稱不可空白");
+
+      const note = prompt("備註（可空白）", it.note || "");
+      if (note===null) return;
+
+      const qtyRaw = prompt("數量（至少 1）", String(it.qty || 1));
+      if (qtyRaw===null) return;
+      const qty = Math.max(1, parseInt(qtyRaw, 10) || 1);
+
+      it.name = nextName;
+      it.note = note.trim();
+      it.qty = qty;
+      save();
+      toast("已更新項目");
+      render();
+    };
+
     el.querySelector('[data-act="del"]').onclick = ()=>{
-      state.items = state.items.filter(x=>x.id!==it.id);
-      save(); toast("已刪除");
+      const index = state.items.findIndex(x=>x.id===it.id);
+      if (index<0) return;
+      state.lastDeleted = {
+        item: {...state.items[index]},
+        index,
+        at: Date.now()
+      };
+      state.items.splice(index, 1);
+      save(); toast("已刪除（可到設定復原）");
       render();
     };
 
@@ -557,7 +669,9 @@
         // 進入不同段，通常不需要維持搜尋/未完成/位置篩選太嚴格
         state.q = "";
         state.onlyTodo = false;
+        state.mustOnly = false;
         state.locFilter = "all";
+        state.sortBy = "default";
         save(); toast("切換段：" + phaseName());
         render();
       };
@@ -571,6 +685,7 @@
     card.innerHTML = `
       <div style="font-weight:700;font-size:14px;margin-bottom:10px;">未完成（本段）</div>
       <div class="toolbar">
+        <button class="btn primary" id="todoMustCarry">必帶＋隨身包</button>
         <button class="btn primary" id="todoMust">只看必帶未完成</button>
         <button class="btn" id="todoCarry">只看隨身包未完成</button>
         <button class="btn" id="todoAll">全部未完成</button>
@@ -579,9 +694,41 @@
     `;
     container.appendChild(card);
 
-    $("#todoMust").onclick=()=>{ state.onlyTodo=true; state.locFilter="all"; state.q=""; save(); renderList(container, true, true); };
-    $("#todoCarry").onclick=()=>{ state.onlyTodo=true; state.locFilter="carry"; state.q=""; save(); render(); };
-    $("#todoAll").onclick=()=>{ state.onlyTodo=true; state.locFilter="all"; state.q=""; save(); render(); };
+    $("#todoMustCarry").onclick=()=>{
+      state.onlyTodo = true;
+      state.mustOnly = true;
+      state.locFilter = "carry";
+      state.q = "";
+      state.sortBy = "must";
+      save();
+      render();
+    };
+    $("#todoMust").onclick=()=>{
+      state.onlyTodo = true;
+      state.mustOnly = true;
+      state.locFilter = "all";
+      state.q = "";
+      state.sortBy = "must";
+      save();
+      render();
+    };
+    $("#todoCarry").onclick=()=>{
+      state.onlyTodo = true;
+      state.mustOnly = false;
+      state.locFilter = "carry";
+      state.q = "";
+      save();
+      render();
+    };
+    $("#todoAll").onclick=()=>{
+      state.onlyTodo = true;
+      state.mustOnly = false;
+      state.locFilter = "all";
+      state.q = "";
+      state.sortBy = "default";
+      save();
+      render();
+    };
 
     // default render list of current filters
     renderList(container);
@@ -614,6 +761,7 @@
       <div class="toolbar">
         <button class="btn" id="export">匯出 JSON</button>
         <button class="btn" id="import">匯入 JSON</button>
+        <button class="btn" id="undoDel">復原最近刪除</button>
         <button class="btn" id="print">列印本段未完成</button>
         <button class="btn danger" id="reset">重置</button>
       </div>
@@ -644,8 +792,7 @@
         const txt = await f.text();
         try{
           const obj = JSON.parse(txt);
-          if (!obj.items || !Array.isArray(obj.items)) throw new Error("格式不正確");
-          state = obj;
+          state = normalizeState(obj);
           save();
           toast("匯入完成");
           render();
@@ -654,6 +801,19 @@
         }
       };
       input.click();
+    };
+
+    $("#undoDel").onclick = ()=>{
+      if (!state.lastDeleted || !state.lastDeleted.item) {
+        return toast("沒有可復原的刪除項目");
+      }
+      const restored = normalizeItem(state.lastDeleted.item);
+      const insertIndex = Math.max(0, Math.min(state.items.length, parseInt(state.lastDeleted.index, 10) || 0));
+      state.items.splice(insertIndex, 0, restored);
+      state.lastDeleted = null;
+      save();
+      toast("已復原最近刪除項目");
+      render();
     };
 
     $("#print").onclick = ()=>{
@@ -672,10 +832,7 @@
 
     $("#reset").onclick = ()=>{
       if (!confirm("確定重置？所有勾選與自訂項目都會清掉。")) return;
-      state = {
-        tab:"list", phase:"pre", showJapan:true, onlyTodo:false, q:"", locFilter:"all", collapsed:{},
-        items: seedItems.map(x=>({...x, done:false}))
-      };
+      state = defaultState();
       save();
       toast("已重置");
       render();
